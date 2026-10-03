@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "name": "Chèn clip vào giữa",
+  "description": "Thân video 0–5s → clip pool 3s → thân video từ giây 5.",
+  "groups": { "key_from_slot": "body" },
+  "slots": {
+    "body": { "type": "per_group", "default_dir": "Body", "required": true, "label": "Thân video" },
+    "pool": { "type": "pool", "default_dir": "Insert", "required": true, "label": "Clip chèn" }
+  },
+  "timeline": [
+    { "kind": "asset", "slot": "body", "trim": { "start": 0, "end": 5 } },
+    { "kind": "pool", "trim": { "start": 0, "end": 3 }, "audio": { "mode": "overlay" },
+      "transition_in": { "type": "fade", "duration": 0.3 } },
+    { "kind": "asset", "slot": "body", "trim": { "start": 5 },
+      "transition_in": { "type": "fade", "duration": 0.3 } }
+  ]
+}

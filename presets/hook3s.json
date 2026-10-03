@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "name": "Thay hook 3s đầu",
+  "description": "Dùng 3s đầu của clip pool làm hook, nối phần thân (từ giây thứ 3) theo nhóm.",
+  "groups": { "key_from_slot": "body" },
+  "slots": {
+    "body": { "type": "per_group", "default_dir": "Body", "required": true, "label": "Thân video" },
+    "pool": { "type": "pool", "default_dir": "Hook", "required": true, "label": "Hook" }
+  },
+  "timeline": [
+    { "kind": "pool", "trim": { "start": 0, "end": 3 }, "audio": { "mode": "overlay" } },
+    { "kind": "asset", "slot": "body", "trim": { "start": 3 } }
+  ]
+}

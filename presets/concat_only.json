@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "name": "Chỉ nối theo nhóm",
+  "description": "Intro[nhóm] → Source[nhóm] → Outtro, không dùng pool.",
+  "groups": { "key_from_slot": "intro" },
+  "slots": {
+    "intro":  { "type": "per_group", "default_dir": "Intro",  "required": true, "label": "Intro" },
+    "source": { "type": "per_group", "default_dir": "Source", "required": true, "label": "Source" },
+    "outtro": { "type": "shared", "default_file": ["Outtro.*", "Outro.*", "Ending.*"], "required": false, "label": "Outtro" }
+  },
+  "combine": { "mode": "no_pool" },
+  "timeline": [
+    { "kind": "asset", "slot": "intro" },
+    { "kind": "asset", "slot": "source" },
+    { "kind": "asset", "slot": "outtro", "optional": true }
+  ],
+  "output": { "name_template": "{group}" }
+}

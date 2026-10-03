@@ -1,0 +1,3 @@
+Alpine.js — MIT (https://github.com/alpinejs/alpine)
+Lucide icons — ISC (https://lucide.dev)
+Fira Sans, Fira Code — SIL Open Font License 1.1 (via Fontsource)

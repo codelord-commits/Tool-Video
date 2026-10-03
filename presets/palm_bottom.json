@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "name": "Thay nửa dưới + giữ caption",
+  "description": "Thay nửa dưới Intro bằng clip trong pool, giữ voice + dải caption, nối Source cùng nhóm rồi Outtro.",
+  "groups": { "key_from_slot": "intro", "key_mode": "stem" },
+  "slots": {
+    "intro":  { "type": "per_group", "default_dir": "Intro",  "required": true, "label": "Intro" },
+    "source": { "type": "per_group", "default_dir": "Source", "required": true, "label": "Source" },
+    "outtro": { "type": "shared", "default_file": ["Outtro.*", "Outro.*", "Ending.*"], "required": true, "label": "Outtro" },
+    "pool":   { "type": "pool", "default_dir": "Video", "required": true, "label": "Clip thay thế" }
+  },
+  "combine": { "mode": "cartesian", "seed": 42 },
+  "timeline": [
+    { "kind": "composite", "base": "intro", "overlay": "pool",
+      "region": { "preset": "bottom", "split": 0.5, "fit": "cover", "anchor": "center" },
+      "protect": [ { "from": "base", "x": 0, "y": 0.48, "w": 1, "h": 0.065, "label": "Caption" } ],
+      "duration_mode": "match_base", "clip_start": 0, "audio": { "mode": "base" } },
+    { "kind": "asset", "slot": "source" },
+    { "kind": "asset", "slot": "outtro" }
+  ],
+  "output": { "resolution": "1080x1920", "fps": 30, "folder_template": "{group}", "name_template": "{group}_{clip}" }
+}

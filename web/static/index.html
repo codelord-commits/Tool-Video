@@ -1,0 +1,706 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Video Variant Builder</title>
+  <meta name="color-scheme" content="dark light">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%237C3AED'/%3E%3Cstop offset='1' stop-color='%232563EB'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Cpath d='M12 10v12l10-6z' fill='white'/%3E%3C/svg%3E">
+  <link rel="preload" href="/static/fonts/fira-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/static/css/tokens.css">
+  <link rel="stylesheet" href="/static/css/base.css">
+  <link rel="stylesheet" href="/static/css/components.css">
+  <link rel="stylesheet" href="/static/css/layout.css">
+  <script type="module" src="/static/js/app.js"></script>
+  <script defer src="/static/vendor/alpine.min.js"></script>
+</head>
+<body x-data="app" @keydown.window="onKey($event)" @click.window="menu && !$event.target.closest('[data-menu]') && (menu = '')">
+<div class="app" x-cloak>
+
+  <!-- ================= THANH TRÊN ================= -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"><svg class="i"><use href="/static/vendor/icons.svg#i-film"/></svg></span>
+      <span class="text" x-text="t('app.title')"></span>
+    </div>
+    <div style="position:relative" data-menu>
+      <button class="btn preset-btn" @click="menu = menu === 'preset' ? '' : 'preset'" :aria-expanded="menu === 'preset'" aria-haspopup="menu">
+        <svg class="i"><use href="/static/vendor/icons.svg#i-sliders-horizontal"/></svg>
+        <span class="muted" x-text="t('top.preset') + ':'"></span>
+        <span class="name" x-text="presetName"></span>
+        <span class="dot" x-show="dirty" :title="t('top.unsaved')" :aria-label="t('top.unsaved')"></span>
+        <svg class="i"><use href="/static/vendor/icons.svg#i-chevron-down"/></svg>
+      </button>
+      <div class="menu" role="menu" x-show="menu === 'preset'" x-transition.opacity style="top:40px;left:0">
+        <div class="menu-label" x-text="t('preset.builtin')"></div>
+        <template x-for="p in presets.filter(p => p.builtin)" :key="p.id">
+          <button class="menu-item" role="menuitemradio" :aria-checked="p.id === presetId" @click="selectPreset(p.id)" :title="p.description">
+            <svg class="i"><use href="/static/vendor/icons.svg#i-layers"/></svg><span x-text="p.name"></span>
+          </button>
+        </template>
+        <template x-if="presets.some(p => !p.builtin)"><div class="menu-label" x-text="t('preset.user')"></div></template>
+        <template x-for="p in presets.filter(p => !p.builtin)" :key="p.id">
+          <button class="menu-item" role="menuitemradio" :aria-checked="p.id === presetId" @click="selectPreset(p.id)" :title="p.description">
+            <svg class="i"><use href="/static/vendor/icons.svg#i-file-json"/></svg><span x-text="p.name"></span>
+          </button>
+        </template>
+        <div class="menu-sep"></div>
+        <button class="menu-item" @click="savePreset()"><svg class="i"><use href="/static/vendor/icons.svg#i-save"/></svg><span x-text="t('preset.save')"></span><span class="kbd" style="margin-left:auto">Ctrl S</span></button>
+        <button class="menu-item" @click="saveAs()"><svg class="i"><use href="/static/vendor/icons.svg#i-plus"/></svg><span x-text="t('preset.saveAs')"></span></button>
+        <button class="menu-item" @click="duplicate()"><svg class="i"><use href="/static/vendor/icons.svg#i-copy"/></svg><span x-text="t('preset.duplicate')"></span></button>
+        <button class="menu-item" @click="renamePreset()" :disabled="builtin"><svg class="i"><use href="/static/vendor/icons.svg#i-pencil"/></svg><span x-text="t('preset.rename')"></span></button>
+        <button class="menu-item" @click="exportPreset()"><svg class="i"><use href="/static/vendor/icons.svg#i-download"/></svg><span x-text="t('preset.export')"></span></button>
+        <button class="menu-item" @click="menu=''; $refs.importFile.click()"><svg class="i"><use href="/static/vendor/icons.svg#i-upload"/></svg><span x-text="t('preset.import')"></span></button>
+        <button class="menu-item btn-danger" @click="deletePreset()" x-show="!builtin"><svg class="i"><use href="/static/vendor/icons.svg#i-trash-2"/></svg><span x-text="t('preset.delete')"></span></button>
+      </div>
+      <input type="file" accept=".json,application/json" x-ref="importFile" class="sr-only" @change="importPreset($event)" tabindex="-1" aria-hidden="true">
+    </div>
+    <button class="btn btn-icon" @click="savePreset()" :title="t('top.save') + ' (Ctrl+S)'" :aria-label="t('top.save')">
+      <svg class="i"><use href="/static/vendor/icons.svg#i-save"/></svg>
+    </button>
+    <button class="btn btn-icon" @click="saveAs()" :title="t('top.new')" :aria-label="t('top.new')">
+      <svg class="i"><use href="/static/vendor/icons.svg#i-plus"/></svg>
+    </button>
+    <div class="spacer"></div>
+    <span class="badge err" x-show="sys && !sys.ffmpeg_ok"><svg class="i"><use href="/static/vendor/icons.svg#i-triangle-alert"/></svg><span x-text="t('ffmpeg.missing')"></span></span>
+    <span class="badge" x-show="sys?.ffmpeg" :title="sys?.ffmpeg?.path"><span class="mono" x-text="(sys?.ffmpeg?.version || '').replace('ffmpeg version ', 'ffmpeg ').split(' Copyright')[0].slice(0, 28)"></span></span>
+    <div style="position:relative" data-menu>
+      <button class="btn btn-icon" @click="menu = menu === 'theme' ? '' : 'theme'" :title="t('top.theme')" :aria-label="t('top.theme')">
+        <svg class="i"><use :href="icon(themeIcon)"/></svg>
+      </button>
+      <div class="menu" x-show="menu === 'theme'" x-transition.opacity style="top:40px;right:0;min-width:180px" role="menu">
+        <template x-for="th in ['system','dark','light']" :key="th">
+          <button class="menu-item" role="menuitemradio" :aria-checked="theme === th" @click="setTheme(th)">
+            <svg class="i"><use :href="icon({system:'monitor',dark:'moon',light:'sun'}[th])"/></svg><span x-text="t('theme.' + th)"></span>
+          </button>
+        </template>
+      </div>
+    </div>
+    <div style="position:relative" data-menu>
+      <button class="btn btn-icon" @click="menu = menu === 'lang' ? '' : 'lang'" :title="t('top.lang')" :aria-label="t('top.lang')">
+        <svg class="i"><use href="/static/vendor/icons.svg#i-languages"/></svg>
+      </button>
+      <div class="menu" x-show="menu === 'lang'" x-transition.opacity style="top:40px;right:0;min-width:160px" role="menu">
+        <button class="menu-item" role="menuitemradio" :aria-checked="lang === 'vi'" @click="setLang('vi')">Tiếng Việt</button>
+        <button class="menu-item" role="menuitemradio" :aria-checked="lang === 'en'" @click="setLang('en')">English</button>
+      </div>
+    </div>
+    <button class="btn btn-icon" @click="optionsOpen = !optionsOpen; settings.options_collapsed = !settings.options_collapsed"
+            :title="t('top.options')" :aria-label="t('top.options')" :aria-pressed="optionsOpen">
+      <svg class="i"><use href="/static/vendor/icons.svg#i-panel-right"/></svg>
+    </button>
+    <button class="btn btn-icon btn-ghost" @click="quit()" :title="t('top.quit')" :aria-label="t('top.quit')">
+      <svg class="i"><use href="/static/vendor/icons.svg#i-power"/></svg>
+    </button>
+  </header>
+
+  <!-- Tab cho màn hình hẹp -->
+  <nav class="ptabs" role="tablist">
+    <div class="tabs" style="width:100%">
+      <button class="tab" role="tab" :aria-selected="mtab === 'source'" @click="mtab = 'source'" x-text="'① ' + t('source.title')"></button>
+      <button class="tab" role="tab" :aria-selected="mtab === 'preview'" @click="mtab = 'preview'" x-text="'② ' + t('preview.title')"></button>
+      <button class="tab" role="tab" :aria-selected="mtab === 'options'" @click="mtab = 'options'" x-text="'③ ' + t('opt.title')"></button>
+    </div>
+  </nav>
+
+  <!-- ================= 3 PANEL ================= -->
+  <div class="main" :class="{ 'options-collapsed': settings.options_collapsed && !optionsOpen }">
+
+    <!-- ① NGUỒN -->
+    <section class="panel panel-source" :class="{ active: mtab === 'source' }" aria-labelledby="h-source">
+      <div class="panel-head">
+        <h2 id="h-source"><span class="step" :class="{ done: plan && plan.count }">1</span><span x-text="t('source.title')"></span></h2>
+        <button class="btn btn-icon btn-ghost btn-sm" @click="refreshPlan()" :title="t('source.refresh')" :aria-label="t('source.refresh')" :disabled="!Object.keys(paths).length">
+          <svg class="i" :class="{ spin: planLoading }"><use href="/static/vendor/icons.svg#i-refresh-cw"/></svg>
+        </button>
+      </div>
+      <div class="panel-body">
+        <template x-if="!Object.keys(paths).length">
+          <div class="hero" style="padding:var(--space-4) 0">
+            <div class="hero-art" style="width:72px;height:72px;border-radius:20px"><svg class="i i-xl"><use href="/static/vendor/icons.svg#i-folder-open"/></svg></div>
+            <h3 style="font-size:var(--fs-lg)" x-text="t('source.emptyTitle')"></h3>
+            <p class="lead" style="font-size:var(--fs-sm)" x-text="t('source.emptyLead')"></p>
+            <button class="btn btn-primary btn-lg" @click="openBrowser('project')">
+              <svg class="i"><use href="/static/vendor/icons.svg#i-folder-search"/></svg><span x-text="t('source.choose')"></span>
+            </button>
+            <template x-if="settings.recent_projects?.length">
+              <div style="width:100%;display:grid;gap:4px;text-align:left">
+                <div class="section-title" x-text="t('source.recent')"></div>
+                <template x-for="r in settings.recent_projects" :key="r">
+                  <button class="btn btn-ghost btn-sm" style="justify-content:flex-start" @click="setProject(r)" :title="r">
+                    <svg class="i"><use href="/static/vendor/icons.svg#i-history"/></svg><span x-text="baseName(r)"></span>
+                  </button>
+                </template>
+              </div>
+            </template>
+          </div>
+        </template>
+
+        <div class="field" x-show="Object.keys(paths).length">
+          <label for="project-path"><span x-text="t('source.project')"></span>
+            <span class="tip" :title="t('source.projectHelp')"><svg class="i"><use href="/static/vendor/icons.svg#i-info"/></svg></span></label>
+          <div class="input-group">
+            <input id="project-path" class="input" :value="project" @change="setProject($event.target.value)" :placeholder="t('fb.pathPlaceholder')">
+            <button class="btn btn-icon" @click="openBrowser('project')" :title="t('source.browse')" :aria-label="t('source.browse')"><svg class="i"><use href="/static/vendor/icons.svg#i-folder-open"/></svg></button>
+          </div>
+        </div>
+
+        <div class="section-title" x-show="Object.keys(paths).length" x-text="t('source.slots')"></div>
+        <template x-for="sl in slotList" :key="sl.name">
+          <div class="slot" :data-slot="sl.name" x-show="Object.keys(paths).length">
+            <div class="slot-head">
+              <svg class="i"><use :href="icon(sl.icon)"/></svg>
+              <span class="name" x-text="sl.label"></span>
+              <template x-if="slotState(sl) === 'ok'"><span class="badge ok"><svg class="i"><use href="/static/vendor/icons.svg#i-circle-check"/></svg><span x-text="t('source.files', { n: slotScan(sl.name).count })"></span></span></template>
+              <template x-if="slotState(sl) === 'warn'"><span class="badge warn" :title="slotScan(sl.name).warnings.join('\n')"><svg class="i"><use href="/static/vendor/icons.svg#i-triangle-alert"/></svg><span x-text="t('source.files', { n: slotScan(sl.name).count })"></span></span></template>
+              <template x-if="slotState(sl) === 'error'"><span class="badge err" :title="slotScan(sl.name).error"><svg class="i"><use href="/static/vendor/icons.svg#i-circle-x"/></svg><span x-text="slotScan(sl.name).error"></span></span></template>
+              <template x-if="slotState(sl) === 'missing'"><span class="badge err"><svg class="i"><use href="/static/vendor/icons.svg#i-circle-x"/></svg><span x-text="t('source.missing')"></span></span></template>
+              <template x-if="slotState(sl) === 'empty'"><span class="badge" x-text="t('source.optional')"></span></template>
+            </div>
+            <div class="input-group">
+              <input class="input" style="min-height:28px;font-size:12px" :value="paths[sl.name] || ''" :aria-label="sl.label"
+                     @change="applyPath(sl.name, $event.target.value.trim())" :placeholder="sl.type === 'shared' ? 'Outtro.mp4' : (sl.default_dir || '')">
+              <button class="btn btn-icon btn-sm" style="width:28px" @click="openBrowser(sl.name, sl.type === 'shared' ? 'file' : 'dir')" :title="t('source.browse')" :aria-label="t('source.browse') + ' ' + sl.label">
+                <svg class="i"><use href="/static/vendor/icons.svg#i-folder"/></svg></button>
+              <button class="btn btn-icon btn-sm" style="width:28px" @click="showFiles(sl.name)" :disabled="!slotScan(sl.name)?.count" :title="t('source.viewFiles')" :aria-label="t('source.viewFiles')">
+                <svg class="i"><use href="/static/vendor/icons.svg#i-list"/></svg></button>
+            </div>
+            <div class="slot-meta" x-show="slotTotal(sl.name)">
+              <span><svg class="i"><use href="/static/vendor/icons.svg#i-clock"/></svg> <span class="num" x-text="fmtDuration(slotTotal(sl.name))"></span></span>
+            </div>
+          </div>
+        </template>
+
+        <div class="field" x-show="Object.keys(paths).length">
+          <label for="out-path" x-text="t('source.output')"></label>
+          <div class="input-group">
+            <input id="out-path" class="input" style="min-height:28px;font-size:12px" :value="outDir" @change="outDir = $event.target.value.trim()">
+            <button class="btn btn-icon btn-sm" style="width:28px" @click="openBrowser('out')" :aria-label="t('source.browse')"><svg class="i"><use href="/static/vendor/icons.svg#i-folder"/></svg></button>
+          </div>
+        </div>
+
+        <template x-if="matchRows.length">
+          <div style="display:grid;gap:var(--space-2)">
+            <div class="section-title"><span x-text="t('source.match')"></span>
+              <span class="tip" :title="t('source.matchHelp')"><svg class="i"><use href="/static/vendor/icons.svg#i-info"/></svg></span></div>
+            <div class="match-wrap">
+              <table class="match">
+                <thead><tr><th></th><th x-text="t('source.group')"></th>
+                  <template x-for="s in perGroupSlots" :key="s.name"><th x-text="s.label"></th></template></tr></thead>
+                <tbody>
+                  <template x-for="r in matchRows" :key="r.key">
+                    <tr :class="{ invalid: !r.valid }" :title="r.reasons.join('\n')">
+                      <td><input type="checkbox" :checked="r.valid && groupSel[r.key] !== false" :disabled="!r.valid" @change="toggleGroup(r.key)" :aria-label="r.display"></td>
+                      <td><b x-text="r.display"></b></td>
+                      <template x-for="s in perGroupSlots" :key="s.name">
+                        <td>
+                          <template x-if="r.cells[s.name].status === 'ok'">
+                            <span class="cell" :title="r.cells[s.name].file"><svg class="i st-ok" aria-label="OK"><use href="/static/vendor/icons.svg#i-circle-check"/></svg><span x-text="baseName(r.cells[s.name].file)"></span></span>
+                          </template>
+                          <template x-if="r.cells[s.name].status !== 'ok'">
+                            <select class="select" :aria-label="r.display + ' ' + s.label" @change="setManual(r.key, s.name, $event.target.value)"
+                                    :style="r.cells[s.name].status === 'duplicate' ? 'border-color:var(--danger)' : 'border-color:var(--warning)'">
+                              <option value="" x-text="r.cells[s.name].status === 'duplicate' ? t('source.duplicate') : ('— ' + t('source.missing'))"></option>
+                              <template x-for="f in cellCandidates(r, s.name)" :key="f"><option :value="f" x-text="baseName(f)"></option></template>
+                            </select>
+                          </template>
+                        </td>
+                      </template>
+                    </tr>
+                  </template>
+                  <template x-for="u in plan?.match?.unused || []" :key="u.file">
+                    <tr class="unused"><td></td><td x-text="t('source.unused')"></td><td :colspan="perGroupSlots.length" x-text="baseName(u.file)"></td></tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </template>
+
+        <template x-if="poolFiles.length && preset?.combine?.mode !== 'no_pool'">
+          <div style="display:grid;gap:var(--space-2)">
+            <div class="section-title" style="justify-content:space-between">
+              <span x-text="t('source.clips') + ' (' + poolFiles.filter(p => clipSel[p] !== false).length + '/' + poolFiles.length + ')'"></span>
+              <span><button class="btn btn-ghost btn-sm" @click="setAllClips(true)" x-text="t('source.allClips')"></button><button class="btn btn-ghost btn-sm" @click="setAllClips(false)" x-text="t('source.noClips')"></button></span>
+            </div>
+            <div class="chips">
+              <template x-for="p in poolFiles" :key="p">
+                <button class="chip" :aria-pressed="clipSel[p] !== false" @click="toggleClip(p)" :title="p">
+                  <svg class="i" x-show="clipSel[p] !== false" style="width:12px;height:12px"><use href="/static/vendor/icons.svg#i-check"/></svg>
+                  <span x-text="baseName(p).replace(/\.[^.]+$/, '')"></span>
+                </button>
+              </template>
+            </div>
+          </div>
+        </template>
+      </div>
+    </section>
+
+    <!-- ② XEM TRƯỚC -->
+    <section class="panel panel-preview" :class="{ active: mtab === 'preview' }" aria-labelledby="h-preview">
+      <div class="pv-toolbar">
+        <h2 id="h-preview" class="section-title" style="margin-right:var(--space-2)"><span class="step">2</span><span x-text="t('preview.title')"></span></h2>
+        <label class="sr-only" for="pv-group" x-text="t('preview.group')"></label>
+        <select id="pv-group" class="select" x-model="pv.group" :title="t('preview.group')" :disabled="!matchRows.length">
+          <template x-for="r in matchRows" :key="r.key"><option :value="r.display" x-text="r.display"></option></template>
+        </select>
+        <label class="sr-only" for="pv-clip" x-text="t('preview.clip')"></label>
+        <select id="pv-clip" class="select" x-model="pv.clip" :title="t('preview.clip')" x-show="poolFiles.length && preset?.combine?.mode !== 'no_pool'">
+          <template x-for="p in poolFiles" :key="p"><option :value="baseName(p).replace(/\.[^.]+$/, '')" x-text="baseName(p).replace(/\.[^.]+$/, '')"></option></template>
+        </select>
+        <label class="sr-only" for="pv-seg" x-text="t('preview.segment')"></label>
+        <select id="pv-seg" class="select" x-model.number="pv.seg" :title="t('preview.segment')">
+          <template x-for="(s, i) in preset?.timeline || []" :key="i"><option :value="i" x-text="segLabel(s, i)"></option></template>
+        </select>
+        <div class="spacer" style="flex:1"></div>
+        <button class="btn btn-sm" :aria-pressed="pv.grid" :class="{ 'btn-primary': pv.grid }" @click="pv.grid = !pv.grid" :title="t('preview.grid')" :aria-label="t('preview.grid')"><svg class="i"><use href="/static/vendor/icons.svg#i-grid-3x3"/></svg></button>
+        <button class="btn btn-sm" :aria-pressed="pv.safe" :class="{ 'btn-primary': pv.safe }" @click="pv.safe = !pv.safe" :title="t('preview.safe')" :aria-label="t('preview.safe')"><svg class="i"><use href="/static/vendor/icons.svg#i-smartphone"/></svg></button>
+        <button class="btn btn-sm" :aria-pressed="pv.compare" :class="{ 'btn-primary': pv.compare }" @click="pv.compare = !pv.compare" :title="t('preview.compare')" :aria-label="t('preview.compare')"><svg class="i"><use href="/static/vendor/icons.svg#i-columns-2"/></svg></button>
+      </div>
+
+      <div class="pv-stage">
+        <div class="pv-canvas">
+          <template x-if="!canPreview">
+            <div class="empty">
+              <svg class="i i-xl"><use href="/static/vendor/icons.svg#i-image"/></svg>
+              <p x-text="t('preview.noSource')"></p>
+            </div>
+          </template>
+          <div class="frame" x-show="canPreview" :style="`--ar:${pv.W} / ${pv.H}; --cmp:${pv.cmp}%`">
+            <img :src="pv.url" alt="" x-show="pv.url" :class="{ stale: pv.loading }">
+            <template x-if="pv.compare && pv.beforeUrl">
+              <div>
+                <img class="before" :src="pv.beforeUrl" alt="">
+                <div class="cmp-line"></div>
+                <span class="cmp-tag" style="left:8px" x-text="t('preview.before')"></span>
+                <span class="cmp-tag" style="right:8px" x-text="t('preview.after')"></span>
+              </div>
+            </template>
+            <div class="editor" x-ref="editor" x-show="!pv.compare"
+                 @pointermove="onDrag($event)" @pointerup="endDrag()" @pointercancel="endDrag()">
+              <div x-show="pv.grid">
+                <span class="guide v" style="left:33.333%"></span><span class="guide v" style="left:66.666%"></span>
+                <span class="guide h" style="top:33.333%"></span><span class="guide h" style="top:66.666%"></span>
+              </div>
+              <div x-show="pv.safe">
+                <template x-for="(z, zi) in safeZones" :key="zi"><span class="safe" :style="boxStyle(z)"></span></template>
+              </div>
+              <template x-for="r in rects" :key="r.id">
+                <div class="r-box" :class="[r.kind, sel === r.id ? 'sel' : '']" :style="boxStyle(r)" tabindex="0" role="button"
+                     :aria-label="r.label + ' ' + r.x + ',' + r.y + ' ' + r.w + '×' + r.h"
+                     @pointerdown="startDrag($event, r.id, 'move')" @keydown="keyRect($event, r.id)" @focus="sel = r.id">
+                  <span class="r-label" x-text="r.label"></span>
+                  <template x-for="hd in ['nw','n','ne','e','se','s','sw','w']" :key="hd">
+                    <span class="r-handle" :class="'h-' + hd" x-show="sel === r.id" @pointerdown.stop="startDrag($event, r.id, hd)"></span>
+                  </template>
+                </div>
+              </template>
+            </div>
+            <input x-show="pv.compare" type="range" min="0" max="100" x-model.number="pv.cmp" :aria-label="t('preview.compare')"
+                   style="position:absolute;left:8px;right:8px;bottom:8px;width:calc(100% - 16px)">
+            <div class="loader" x-show="pv.loading"><svg class="i spin"><use href="/static/vendor/icons.svg#i-loader-circle"/></svg><span x-text="t('preview.rendering')"></span></div>
+            <div class="pv-error" x-show="pv.error" x-text="pv.error" role="alert"></div>
+          </div>
+          <template x-if="pv.videoUrl">
+            <div class="scrim" style="position:absolute" @click.self="pv.videoUrl = ''">
+              <div style="position:relative;height:90%;aspect-ratio:var(--ar);" :style="`--ar:${pv.W} / ${pv.H}`">
+                <video id="pv-video" :src="pv.videoUrl" controls autoplay style="height:100%;width:100%;border-radius:var(--radius);background:#000"></video>
+                <button class="btn btn-icon" style="position:absolute;top:8px;right:-44px" @click="pv.videoUrl = ''" :aria-label="t('preview.close')"><svg class="i"><use href="/static/vendor/icons.svg#i-x"/></svg></button>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <aside class="pv-side" x-show="canPreview">
+          <template x-if="isComposite">
+            <div style="display:grid;gap:var(--space-3)">
+              <div class="section-title" x-text="t('preview.layers')"></div>
+              <div class="legend">
+                <template x-for="r in rects" :key="r.id">
+                  <div style="display:flex;gap:4px;align-items:center">
+                    <button class="btn btn-sm btn-ghost" style="flex:1" :class="{ 'is-sel': sel === r.id }" :aria-pressed="sel === r.id" @click="sel = r.id">
+                      <span class="swatch" :style="`background:var(--${r.kind})`"></span><span x-text="r.label"></span>
+                    </button>
+                    <button class="btn btn-icon btn-sm btn-ghost" style="width:28px" x-show="r.kind === 'protect'" @click="removeProtect(r.idx)" :title="t('preview.removeProtect')" :aria-label="t('preview.removeProtect')">
+                      <svg class="i"><use href="/static/vendor/icons.svg#i-trash-2"/></svg></button>
+                  </div>
+                </template>
+                <button class="btn btn-sm" @click="addProtect()"><svg class="i"><use href="/static/vendor/icons.svg#i-shield"/></svg><span x-text="t('preview.addProtect')"></span></button>
+              </div>
+              <template x-if="selRect">
+                <div style="display:grid;gap:var(--space-2)">
+                  <div class="section-title"><span x-text="t('preview.selected') + ': ' + selRect.label"></span></div>
+                  <div class="rect-edit">
+                    <template x-for="k in ['x','y','w','h']" :key="k">
+                      <label class="field"><span class="label" x-text="k.toUpperCase() + ' (px)'"></span>
+                        <input class="input" type="number" step="2" :value="selRect[k]" @change="setRectField(k, $event.target.value)"></label>
+                    </template>
+                  </div>
+                  <template x-if="selRect.kind === 'protect'">
+                    <label class="field"><span class="label">Nhãn</span>
+                      <input class="input" style="min-height:28px" :value="seg.protect[selRect.idx].label || ''" @input="seg.protect[selRect.idx].label = $event.target.value"></label>
+                  </template>
+                  <template x-if="selRect.kind === 'protect'">
+                    <label class="field"><span class="label">Nguồn (base / slot / file PNG)</span>
+                      <input class="input" style="min-height:28px" :value="seg.protect[selRect.idx].from" @change="seg.protect[selRect.idx].from = $event.target.value || 'base'"></label>
+                  </template>
+                  <p class="help" x-text="t('preview.keys')"></p>
+                </div>
+              </template>
+            </div>
+          </template>
+          <template x-for="w in pv.warnings" :key="w"><div class="badge warn" style="white-space:normal"><svg class="i"><use href="/static/vendor/icons.svg#i-triangle-alert"/></svg><span x-text="w"></span></div></template>
+        </aside>
+      </div>
+      <div class="timebar" x-show="canPreview">
+        <svg class="i muted"><use href="/static/vendor/icons.svg#i-timer"/></svg>
+        <label class="sr-only" for="pv-time" x-text="t('preview.time')"></label>
+        <input id="pv-time" type="range" min="0" :max="Math.max(0.1, pv.dur - 0.034)" step="0.033" x-model.number="pv.t">
+        <span class="num muted" style="font-size:12px;min-width:84px;text-align:right" x-text="pv.t.toFixed(2) + ' / ' + pv.dur.toFixed(2) + 's'"></span>
+        <button class="btn btn-primary" @click="play5()" :disabled="!canPreview || pv.videoLoading">
+          <svg class="i" :class="{ spin: pv.videoLoading }"><use :href="icon(pv.videoLoading ? 'loader-circle' : 'circle-play')"/></svg><span x-text="t('preview.play5')"></span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ③ TUỲ CHỌN -->
+    <section class="panel panel-options" :class="{ open: optionsOpen, active: mtab === 'options' }" aria-labelledby="h-options">
+      <div class="panel-head">
+        <h2 id="h-options"><span class="step">3</span><span x-text="t('opt.title')"></span></h2>
+        <button class="btn btn-sm btn-ghost" @click="resetTab()" :title="t('opt.resetHint')"><svg class="i"><use href="/static/vendor/icons.svg#i-rotate-ccw"/></svg><span x-text="t('opt.reset')"></span></button>
+      </div>
+      <div class="panel-body">
+        <div class="tabs" role="tablist">
+          <template x-for="tb in tabs" :key="tb.id">
+            <button class="tab" role="tab" :aria-selected="optTab === tb.id" @click="optTab = tb.id" x-text="tb.label"></button>
+          </template>
+        </div>
+        <template x-if="['region','duration','audio'].includes(optTab) && preset">
+          <div class="field">
+            <label for="opt-seg" x-text="t('opt.segment')"></label>
+            <select id="opt-seg" class="select" x-model.number="pv.seg">
+              <template x-for="(s, i) in preset.timeline" :key="i"><option :value="i" x-text="segLabel(s, i)"></option></template>
+            </select>
+          </div>
+        </template>
+
+        <div style="display:grid;gap:var(--space-3)">
+          <template x-for="f in tabFields" :key="f.key">
+            <div x-show="fieldVisible(f)" :style="f.depth ? `padding-left:${f.depth * 12}px;border-left:2px solid var(--border)` : ''">
+              <template x-if="f.type === 'section'"><div class="section-title" style="margin-top:var(--space-2)" x-text="f.label"></div></template>
+              <template x-if="f.type === 'group'"><div class="label" style="font-weight:600;color:var(--text)" x-text="f.label"></div></template>
+              <template x-if="f.type === 'optobj' || f.type === 'bool'">
+                <div class="opt-row inline">
+                  <span class="label" style="font-size:var(--fs-sm);color:var(--text)"><span x-text="f.label"></span>
+                    <span class="tip" x-show="f.desc" :title="f.desc" :aria-label="f.desc"><svg class="i"><use href="/static/vendor/icons.svg#i-circle-help"/></svg></span></span>
+                  <label class="switch"><input type="checkbox" :checked="f.type === 'bool' ? !!val(f) : val(f) != null"
+                         @change="f.type === 'bool' ? setVal(f, $event.target.checked) : toggleOpt(f, $event.target.checked)" :aria-label="f.label"><span class="track"></span></label>
+                </div>
+              </template>
+              <template x-if="f.type === 'enum'">
+                <div class="opt-row">
+                  <label class="label" :for="'f-' + f.key"><span x-text="f.label"></span>
+                    <span class="tip" x-show="f.desc" :title="f.desc"><svg class="i"><use href="/static/vendor/icons.svg#i-circle-help"/></svg></span></label>
+                  <select class="select" :id="'f-' + f.key" :value="fv(f)" @change="setFv(f, $event.target.value)">
+                    <template x-if="f.nullable"><option value="" x-text="nullLabel(f)"></option></template>
+                    <template x-for="o in f.options" :key="String(o)"><option :value="String(o)" :selected="String(o) === fv(f)" x-text="optLabel(o)"></option></template>
+                  </select>
+                </div>
+              </template>
+              <template x-if="f.type === 'number'">
+                <div class="opt-row">
+                  <label class="label" :for="'f-' + f.key"><span x-text="f.label"></span>
+                    <span class="tip" x-show="f.desc" :title="f.desc"><svg class="i"><use href="/static/vendor/icons.svg#i-circle-help"/></svg></span></label>
+                  <div :class="f.slider ? 'range-row' : ''">
+                    <template x-if="f.slider"><input type="range" :min="f.min" :max="f.max" :step="f.step" :value="fv(f) === '' ? f.min : fv(f)" @input="setFv(f, $event.target.value)" :aria-label="f.label"></template>
+                    <input class="input" :id="'f-' + f.key" type="number" :min="f.min" :max="f.max" :step="f.step" :value="fv(f)" @change="setFv(f, $event.target.value)" :placeholder="f.nullable ? t('common.none') : ''">
+                  </div>
+                </div>
+              </template>
+              <template x-if="f.type === 'text' || f.type === 'csv'">
+                <div class="opt-row">
+                  <label class="label" :for="'f-' + f.key"><span x-text="f.label"></span>
+                    <span class="tip" x-show="f.desc" :title="f.desc"><svg class="i"><use href="/static/vendor/icons.svg#i-circle-help"/></svg></span></label>
+                  <input class="input" :id="'f-' + f.key" :value="fv(f)" @change="setFv(f, $event.target.value)" :placeholder="f.nullable ? t('common.none') : ''">
+                </div>
+              </template>
+              <template x-if="f.type === 'json'">
+                <div class="opt-row">
+                  <label class="label" :for="'f-' + f.key"><span x-text="f.label"></span>
+                    <span class="tip" x-show="f.desc" :title="f.desc"><svg class="i"><use href="/static/vendor/icons.svg#i-circle-help"/></svg></span></label>
+                  <textarea class="textarea" style="min-height:80px" :id="'f-' + f.key" :value="fv(f)" @change="setFv(f, $event.target.value)"></textarea>
+                </div>
+              </template>
+            </div>
+          </template>
+        </div>
+
+        <template x-if="optTab === 'advanced'">
+          <div style="display:grid;gap:var(--space-3)">
+            <div class="section-title" x-text="t('opt.slotsJson')"></div>
+            <textarea class="textarea" style="min-height:160px" x-model="jsonDraft.slots" spellcheck="false" aria-label="slots JSON"></textarea>
+            <button class="btn btn-sm" @click="applyJson('slots')" x-text="t('opt.apply')"></button>
+            <div class="section-title" x-text="t('opt.timelineJson')"></div>
+            <textarea class="textarea" style="min-height:240px" x-model="jsonDraft.timeline" spellcheck="false" aria-label="timeline JSON"></textarea>
+            <button class="btn btn-sm" @click="applyJson('timeline')" x-text="t('opt.apply')"></button>
+            <pre class="error-text" x-show="jsonErr" x-text="jsonErr" style="white-space:pre-wrap"></pre>
+          </div>
+        </template>
+      </div>
+    </section>
+  </div>
+
+  <!-- ================= ④ CHẠY ================= -->
+  <section class="runbar" :class="{ compact: !isRunning && !showIssues && !unfinished && !logs.length }" aria-labelledby="h-run">
+    <div class="run-left">
+      <template x-if="unfinished && !isRunning">
+        <div class="banner" style="border-radius:var(--radius);border:1px solid var(--warning)">
+          <svg class="i st-warn"><use href="/static/vendor/icons.svg#i-history"/></svg>
+          <span style="flex:1" x-text="t('run.unfinished', { done: unfinished.done, total: unfinished.total })"></span>
+          <button class="btn btn-sm btn-primary" @click="resumeUnfinished()" x-text="t('run.continue')"></button>
+          <button class="btn btn-icon btn-sm btn-ghost" @click="unfinished = null" :aria-label="t('common.close')"><svg class="i"><use href="/static/vendor/icons.svg#i-x"/></svg></button>
+        </div>
+      </template>
+      <div class="run-summary">
+        <h2 id="h-run" class="section-title"><span class="step" :class="{ done: job.state === 'done' }">4</span><span x-text="t('run.title')"></span></h2>
+        <span class="big" x-text="summary || '—'"></span>
+        <span class="muted" style="font-size:var(--fs-sm)" x-text="estimate"></span>
+        <template x-if="checking"><span class="badge"><svg class="i spin"><use href="/static/vendor/icons.svg#i-loader-circle"/></svg><span x-text="t('run.check') + '…'"></span></span></template>
+      </div>
+      <div class="run-actions">
+        <button class="btn" @click="runCheck(true)" :disabled="!Object.keys(paths).length || checking || isRunning">
+          <svg class="i"><use href="/static/vendor/icons.svg#i-scan"/></svg><span x-text="t('run.check')"></span></button>
+        <template x-if="!isRunning">
+          <button class="btn btn-accent" @click="start()" :disabled="!canStart" :aria-describedby="startReason ? 'start-reason' : null">
+            <svg class="i i-lg"><use href="/static/vendor/icons.svg#i-play"/></svg><span x-text="t('run.start')"></span></button>
+        </template>
+        <template x-if="job.state === 'running'">
+          <button class="btn btn-lg" @click="pause()"><svg class="i"><use href="/static/vendor/icons.svg#i-pause"/></svg><span x-text="t('run.pause')"></span></button>
+        </template>
+        <template x-if="job.state === 'paused'">
+          <button class="btn btn-lg btn-primary" @click="resume()"><svg class="i"><use href="/static/vendor/icons.svg#i-play"/></svg><span x-text="t('run.resume')"></span></button>
+        </template>
+        <template x-if="isRunning">
+          <button class="btn btn-lg btn-danger" @click="stop()"><svg class="i"><use href="/static/vendor/icons.svg#i-square"/></svg><span x-text="t('run.stop')"></span></button>
+        </template>
+        <button class="btn" @click="openOutput()" :disabled="!(job.out_dir || full?.out_dir || outDir)">
+          <svg class="i"><use href="/static/vendor/icons.svg#i-external-link"/></svg><span x-text="t('run.openOutput')"></span></button>
+        <span class="reason" id="start-reason" x-show="startReason && !isRunning" role="status">
+          <svg class="i"><use href="/static/vendor/icons.svg#i-info"/></svg><span x-text="startReason"></span></span>
+      </div>
+
+      <template x-if="isRunning || job.state === 'done' || job.state === 'cancelled'">
+        <div style="display:grid;gap:var(--space-2)">
+          <div style="display:flex;gap:var(--space-3);align-items:center">
+            <div class="progress" style="flex:1" :class="{ paused: job.state === 'paused' }" role="progressbar" :aria-valuenow="jobPercent" aria-valuemin="0" aria-valuemax="100" aria-live="polite">
+              <span :style="`width:${jobPercent}%`"></span></div>
+            <span class="num" style="font-size:var(--fs-sm)" x-text="((job.summary.done||0)+(job.summary.skipped||0)+(job.summary.failed||0)) + '/' + (job.summary.total||0)"></span>
+            <span class="badge" :class="{ info: job.state === 'running', warn: job.state === 'paused', ok: job.state === 'done' }"
+                  x-text="{ running: t('run.running'), paused: t('run.paused'), done: t('run.done'), cancelled: t('run.cancelled') }[job.state]"></span>
+            <span class="muted num" style="font-size:12px" x-show="job.eta && isRunning" x-text="'~' + fmtDuration(job.eta)"></span>
+          </div>
+          <div class="stats">
+            <span class="st-ok"><svg class="i"><use href="/static/vendor/icons.svg#i-circle-check"/></svg> <span x-text="t('run.ok') + ': ' + (job.summary.done || 0)"></span></span>
+            <span class="st-err"><svg class="i"><use href="/static/vendor/icons.svg#i-circle-x"/></svg> <span x-text="t('run.failed') + ': ' + (job.summary.failed || 0)"></span></span>
+            <span class="st-skip"><svg class="i"><use href="/static/vendor/icons.svg#i-circle-dashed"/></svg> <span x-text="t('run.skipped') + ': ' + (job.summary.skipped || 0)"></span></span>
+          </div>
+          <div class="workers" x-show="runningTasks.length">
+            <template x-for="w in runningTasks" :key="w.index">
+              <div class="worker"><span class="name" x-text="w.group + ' / ' + (w.clip || '—')"></span>
+                <div class="progress sm"><span :style="`width:${Math.round((w.progress || 0) * 100)}%`"></span></div>
+                <span class="num muted" x-text="Math.round((w.progress || 0) * 100) + '%'"></span></div>
+            </template>
+          </div>
+        </div>
+      </template>
+
+      <template x-if="showIssues && full">
+        <div style="display:grid;gap:4px">
+          <div class="section-title" style="justify-content:space-between"><span x-text="t('run.issues')"></span>
+            <button class="btn btn-icon btn-sm btn-ghost" @click="showIssues = false" :aria-label="t('common.close')"><svg class="i"><use href="/static/vendor/icons.svg#i-x"/></svg></button></div>
+          <div class="issues">
+            <template x-if="!issues.length"><div class="issue info"><svg class="i st-ok"><use href="/static/vendor/icons.svg#i-circle-check"/></svg><span x-text="t('run.noIssues')"></span></div></template>
+            <template x-for="(i, k) in issues" :key="k">
+              <button class="issue" :class="i.level" @click="issueClick(i)">
+                <svg class="i"><use :href="icon(i.level === 'error' ? 'circle-x' : i.level === 'warning' ? 'triangle-alert' : 'info')"/></svg>
+                <span x-text="i.msg"></span></button>
+            </template>
+          </div>
+        </div>
+      </template>
+    </div>
+
+    <div class="run-right">
+      <div class="log-head">
+        <span class="section-title" style="flex:1" x-text="t('run.log')"></span>
+        <div class="tabs" role="tablist" style="padding:2px">
+          <button class="tab" role="tab" :aria-selected="logFilter === 'all'" @click="logFilter = 'all'" x-text="t('run.filterAll')"></button>
+          <button class="tab" role="tab" :aria-selected="logFilter === 'warn'" @click="logFilter = 'warn'" x-text="t('run.filterWarn')"></button>
+          <button class="tab" role="tab" :aria-selected="logFilter === 'err'" @click="logFilter = 'err'" x-text="t('run.filterErr')"></button>
+        </div>
+        <button class="btn btn-sm" x-show="(job.summary.failed || 0) > 0 && !isRunning" @click="retry()"><svg class="i"><use href="/static/vendor/icons.svg#i-refresh-cw"/></svg><span x-text="t('run.retry')"></span></button>
+      </div>
+      <div class="log" x-ref="log" @scroll="onLogScroll($el)" x-init="logH = $el.clientHeight" role="log" aria-live="off">
+        <div class="empty" x-show="!filteredLogs.length" style="padding:var(--space-4);font-family:var(--font-sans)" x-text="t('run.logEmpty')"></div>
+        <div :style="`height:${filteredLogs.length * 22}px`"></div>
+        <template x-for="l in visibleLogs" :key="l.i">
+          <div class="log-row" :class="l.lv" :style="`top:${l.top}px`" @click="logClick(l)" :title="l.msg"><span class="faint" x-text="l.time"></span>&nbsp;&nbsp;<span x-text="l.msg"></span></div>
+        </template>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ================= MODAL ================= -->
+<template x-if="modal === 'fb'">
+  <div class="scrim" @click.self="modal = null">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="fb-title" x-transition:enter="enter" x-transition:enter-start="enter-start" x-transition:enter-end="enter-end">
+      <div class="modal-head">
+        <svg class="i i-lg"><use href="/static/vendor/icons.svg#i-folder-open"/></svg>
+        <h2 id="fb-title" x-text="fb.kind === 'file' ? t('fb.titleFile') : t('fb.title')"></h2>
+        <button class="btn btn-icon btn-ghost" @click="modal = null" :aria-label="t('common.close')"><svg class="i"><use href="/static/vendor/icons.svg#i-x"/></svg></button>
+      </div>
+      <div class="modal-body" style="display:grid;gap:var(--space-3)">
+        <form class="input-group" @submit.prevent="fbLoad(fb.typed)">
+          <input class="input" x-model="fb.typed" :placeholder="t('fb.pathPlaceholder')" aria-label="path">
+          <button class="btn" type="submit" x-text="t('fb.go')"></button>
+          <button class="btn btn-icon" type="button" @click="fbLoad(fb.data?.parent)" :disabled="!fb.data?.parent" :title="t('fb.up')" :aria-label="t('fb.up')"><svg class="i"><use href="/static/vendor/icons.svg#i-arrow-up"/></svg></button>
+        </form>
+        <div class="crumbs"><template x-for="c in fb.data?.crumbs || []" :key="c.path"><span><button @click="fbLoad(c.path)" x-text="c.name"></button><span class="faint">›</span></span></template></div>
+        <div class="error-text" x-show="fb.error" x-text="fb.error"></div>
+        <div class="fb">
+          <div class="fb-side">
+            <div class="section-title" x-text="t('fb.places')"></div>
+            <template x-for="r in fb.roots" :key="r.path">
+              <button class="btn btn-ghost btn-sm" style="justify-content:flex-start" @click="fbLoad(r.path)">
+                <svg class="i"><use :href="icon(r.kind === 'drive' ? 'hard-drive' : r.kind === 'home' ? 'house' : 'folder')"/></svg><span x-text="r.name"></span></button>
+            </template>
+            <template x-if="settings.recent_projects?.length"><div class="section-title" style="margin-top:8px" x-text="t('source.recent')"></div></template>
+            <template x-for="r in settings.recent_projects || []" :key="r">
+              <button class="btn btn-ghost btn-sm" style="justify-content:flex-start" @click="fbLoad(r)" :title="r"><svg class="i"><use href="/static/vendor/icons.svg#i-history"/></svg><span x-text="baseName(r)"></span></button>
+            </template>
+          </div>
+          <div class="fb-list">
+            <template x-for="d in fb.data?.dirs || []" :key="d.path">
+              <button class="fb-item" @click="fbLoad(d.path)" @dblclick="fb.kind === 'dir' && fbChoose(d.path)"><svg class="i" style="color:var(--primary)"><use href="/static/vendor/icons.svg#i-folder"/></svg><span x-text="d.name"></span></button>
+            </template>
+            <template x-for="f in fb.data?.files || []" :key="f.path">
+              <button class="fb-item file" :class="{ pickable: fb.kind === 'file' }" @click="fb.kind === 'file' && fbChoose(f.path)" :tabindex="fb.kind === 'file' ? 0 : -1">
+                <svg class="i"><use href="/static/vendor/icons.svg#i-file-video"/></svg><span x-text="f.name" style="flex:1"></span><span class="faint num" x-text="fmtBytes(f.size)"></span></button>
+            </template>
+            <template x-if="fb.data && !fb.data.dirs.length && !fb.data.files.length"><div class="empty" x-text="t('fb.empty')"></div></template>
+          </div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-ghost" @click="nativePick()"><svg class="i"><use href="/static/vendor/icons.svg#i-monitor"/></svg><span x-text="t('source.native')"></span></button>
+        <div style="flex:1"></div>
+        <button class="btn" @click="modal = null" x-text="t('common.cancel')"></button>
+        <button class="btn btn-primary" x-show="fb.kind === 'dir'" @click="fbChoose()"><svg class="i"><use href="/static/vendor/icons.svg#i-check"/></svg><span x-text="t('fb.select')"></span></button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template x-if="modal === 'files'">
+  <div class="scrim" @click.self="modal = null">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="files-title">
+      <div class="modal-head"><h2 id="files-title" x-text="(preset.slots[filesSlot]?.label || filesSlot) + ' — ' + t('source.files', { n: slotScan(filesSlot)?.count || 0 })"></h2>
+        <button class="btn btn-icon btn-ghost" @click="modal = null" :aria-label="t('common.close')"><svg class="i"><use href="/static/vendor/icons.svg#i-x"/></svg></button></div>
+      <div class="modal-body">
+        <table class="match" style="font-size:var(--fs-sm)">
+          <thead><tr><th>File</th><th>Độ dài</th><th>Kích thước</th><th>FPS</th><th>Audio</th><th>Cảnh báo</th></tr></thead>
+          <tbody>
+            <template x-for="f in slotScan(filesSlot)?.files || []" :key="f">
+              <tr><td x-text="baseName(f)" :title="f"></td>
+                <td class="num" x-text="media(f) ? media(f).video_duration.toFixed(2) + 's' : '…'"></td>
+                <td class="num" x-text="media(f) ? media(f).width + '×' + media(f).height : ''"></td>
+                <td class="num" x-text="media(f) ? Math.round(media(f).avg_fps * 100) / 100 : ''"></td>
+                <td x-text="media(f) ? (media(f).has_audio ? t('common.yes') : t('common.no')) : ''"></td>
+                <td class="st-warn" x-text="media(f)?.warnings?.join('; ') || ''"></td></tr>
+            </template>
+          </tbody>
+        </table>
+        <p class="help" x-show="!full" style="margin-top:8px" x-text="t('run.check') + '…'"></p>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template x-if="modal === 'issue'">
+  <div class="scrim" @click.self="modal = null">
+    <div class="modal sm" role="dialog" aria-modal="true" aria-labelledby="issue-title">
+      <div class="modal-head"><svg class="i i-lg st-err"><use href="/static/vendor/icons.svg#i-triangle-alert"/></svg><h2 id="issue-title" x-text="issueDetail.title"></h2>
+        <button class="btn btn-icon btn-ghost" @click="modal = null" :aria-label="t('common.close')"><svg class="i"><use href="/static/vendor/icons.svg#i-x"/></svg></button></div>
+      <div class="modal-body" style="display:grid;gap:var(--space-3)">
+        <p x-text="issueDetail.text" style="white-space:pre-wrap"></p>
+        <p class="mono faint" style="font-size:12px;word-break:break-all" x-show="issueDetail.file" x-text="issueDetail.file"></p>
+        <p class="help" x-show="issueDetail.log">Chi tiết lệnh ffmpeg + stderr nằm trong <span class="mono">errors.log</span> ở thư mục Output.</p>
+      </div>
+      <div class="modal-foot">
+        <button class="btn" x-show="issueDetail.file" @click="api_open(issueDetail.file)"><svg class="i"><use href="/static/vendor/icons.svg#i-external-link"/></svg><span x-text="t('run.openOutput')"></span></button>
+        <button class="btn btn-primary" @click="modal = null" x-text="t('common.close')"></button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template x-if="modal === 'done'">
+  <div class="scrim" @click.self="modal = null">
+    <div class="modal sm" role="dialog" aria-modal="true" aria-labelledby="done-title" x-transition:enter="enter" x-transition:enter-start="enter-start" x-transition:enter-end="enter-end">
+      <div class="modal-head"><svg class="i i-lg st-ok"><use href="/static/vendor/icons.svg#i-circle-check"/></svg><h2 id="done-title" x-text="t('run.doneTitle')"></h2></div>
+      <div class="modal-body">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-3);text-align:center">
+          <div><div class="num st-ok" style="font-size:28px;font-weight:600" x-text="job.summary.done || 0"></div><div class="help" x-text="t('run.ok')"></div></div>
+          <div><div class="num st-err" style="font-size:28px;font-weight:600" x-text="job.summary.failed || 0"></div><div class="help" x-text="t('run.failed')"></div></div>
+          <div><div class="num st-skip" style="font-size:28px;font-weight:600" x-text="job.summary.skipped || 0"></div><div class="help" x-text="t('run.skipped')"></div></div>
+          <div><div class="num" style="font-size:28px;font-weight:600" x-text="fmtDuration(job.summary.elapsed)"></div><div class="help" x-text="t('run.elapsed')"></div></div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn" x-show="(job.summary.failed || 0) > 0" @click="retry()"><svg class="i"><use href="/static/vendor/icons.svg#i-refresh-cw"/></svg><span x-text="t('run.retry')"></span></button>
+        <button class="btn" @click="modal = null" x-text="t('common.close')"></button>
+        <button class="btn btn-primary" @click="openOutput(); modal = null"><svg class="i"><use href="/static/vendor/icons.svg#i-external-link"/></svg><span x-text="t('run.openOutput')"></span></button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template x-if="modal === 'dialog'">
+  <div class="scrim" @click.self="closeDialog(null)">
+    <form class="modal sm" role="alertdialog" aria-modal="true" aria-labelledby="dlg-title" @submit.prevent="closeDialog(dialog.input !== null ? dialog.input : true)">
+      <div class="modal-head"><h2 id="dlg-title" x-text="dialog.title"></h2></div>
+      <div class="modal-body" style="display:grid;gap:var(--space-3)" x-show="dialog.text || dialog.input !== null">
+        <p class="muted" x-show="dialog.text" x-text="dialog.text"></p>
+        <template x-if="dialog.input !== null"><input id="dialog-input" class="input" x-model="dialog.input" :aria-label="dialog.title"></template>
+      </div>
+      <div class="modal-foot">
+        <button class="btn" type="button" @click="closeDialog(null)" x-text="t('common.cancel')"></button>
+        <button id="dialog-ok" class="btn" :class="dialog.danger ? 'btn-danger' : 'btn-primary'" type="submit" x-text="dialog.ok"></button>
+      </div>
+    </form>
+  </div>
+</template>
+
+<template x-if="expired">
+  <div class="scrim" style="z-index:100">
+    <div class="modal sm" role="alertdialog" aria-modal="true"><div class="modal-body"><p x-text="t('err.session')"></p></div></div>
+  </div>
+</template>
+
+<template x-if="ready && sys && !sys.ffmpeg_ok">
+  <div class="toasts" style="left:16px;right:auto">
+    <div class="toast err" role="alert"><svg class="i"><use href="/static/vendor/icons.svg#i-triangle-alert"/></svg>
+      <div><b x-text="t('ffmpeg.missing')"></b><div class="muted" x-text="t('ffmpeg.help')"></div></div></div>
+  </div>
+</template>
+
+<div class="toasts" aria-live="polite">
+  <template x-for="tt in toasts" :key="tt.id">
+    <div class="toast" :class="tt.kind" x-transition:enter="enter" x-transition:enter-start="enter-start" x-transition:enter-end="enter-end">
+      <svg class="i"><use :href="icon({ ok: 'circle-check', warn: 'triangle-alert', err: 'circle-x', info: 'info' }[tt.kind])"/></svg>
+      <span x-text="tt.msg"></span></div>
+  </template>
+</div>
+</body>
+</html>

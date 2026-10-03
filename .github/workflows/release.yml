@@ -1,0 +1,38 @@
+name: release
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: write
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            name: windows
+          - os: macos-latest
+            name: macos
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Cài thư viện
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e . pyinstaller
+      - name: Tải ffmpeg
+        run: python scripts/get_ffmpeg.py
+      - name: Đóng gói
+        run: pyinstaller build/vvb.spec --noconfirm --workpath build/out --distpath dist
+      - name: Nén (Windows)
+        if: matrix.name == 'windows'
+        run: Compress-Archive -Path dist/VideoVariantBuilder/* -DestinationPath VideoVariantBuilder-windows.zip
+      - name: Nén (macOS)
+        if: matrix.name == 'macos'
+        run: cd dist && ditto -c -k --keepParent VideoVariantBuilder.app ../VideoVariantBuilder-macos.zip
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: VideoVariantBuilder-${{ matrix.name }}.zip

@@ -1,0 +1,64 @@
+# ===== Media (không bao giờ commit video/âm thanh của khách) =====
+*.mp4
+*.mov
+*.mkv
+*.m4v
+*.webm
+*.avi
+*.wmv
+*.flv
+*.mts
+*.m2ts
+*.mp3
+*.m4a
+*.wav
+*.aac
+*.flac
+*.srt
+Output/
+Output_*/
+preview/
+
+# ===== ffmpeg đóng kèm (tải bằng scripts/get_ffmpeg.py) =====
+bin/*
+!bin/.gitkeep
+
+# ===== Bản build / đóng gói =====
+dist/
+build/out/
+*.spec.bak
+*.exe
+*.dll
+*.zip
+*.7z
+*.tar
+*.tar.gz
+*.tar.xz
+*.dmg
+*.pkg
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.coverage
+htmlcov/
+
+# ===== Test =====
+tests/fixtures/_generated/
+
+# ===== Máy cá nhân / IDE =====
+.claude/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
+*.tmp

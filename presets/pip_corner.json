@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "name": "PiP góc",
+  "description": "Đặt clip pool vào ô nhỏ bo góc ở góc dưới phải của thân video.",
+  "groups": { "key_from_slot": "body" },
+  "slots": {
+    "body": { "type": "per_group", "default_dir": "Body", "required": true, "label": "Thân video" },
+    "pool": { "type": "pool", "default_dir": "Video", "required": true, "label": "Clip PiP" }
+  },
+  "timeline": [
+    { "kind": "composite", "base": "body", "overlay": "pool",
+      "region": { "preset": "pip_corner", "corner": "bottom_right", "size": 0.35, "margin": 0.04,
+                  "border": { "width": 6, "color": "#FFFFFF", "radius": 24 } },
+      "duration_mode": "match_base", "audio": { "mode": "base" } }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "name": "Thay hook giữ voice",
+  "description": "3s đầu thay hình bằng clip pool (toàn khung) nhưng giữ nguyên tiếng của thân video.",
+  "groups": { "key_from_slot": "body" },
+  "slots": {
+    "body": { "type": "per_group", "default_dir": "Body", "required": true, "label": "Thân video" },
+    "pool": { "type": "pool", "default_dir": "Hook", "required": true, "label": "Hook" }
+  },
+  "timeline": [
+    { "kind": "composite", "base": "body", "overlay": "pool",
+      "region": { "preset": "full" }, "active_time": { "start": 0, "end": 3 },
+      "audio": { "mode": "base" } }
+  ]
+}

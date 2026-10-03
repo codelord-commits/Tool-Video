@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "name": "Thay nửa trên",
+  "description": "Thay nửa trên Intro bằng clip pool, giữ tiếng Intro, nối Source theo nhóm.",
+  "groups": { "key_from_slot": "intro" },
+  "slots": {
+    "intro":  { "type": "per_group", "default_dir": "Intro",  "required": true, "label": "Intro" },
+    "source": { "type": "per_group", "default_dir": "Source", "required": false, "label": "Source" },
+    "outtro": { "type": "shared", "default_file": ["Outtro.*", "Outro.*", "Ending.*"], "required": false, "label": "Outtro" },
+    "pool":   { "type": "pool", "default_dir": "Video", "required": true, "label": "Clip thay thế" }
+  },
+  "timeline": [
+    { "kind": "composite", "base": "intro", "overlay": "pool",
+      "region": { "preset": "top", "split": 0.5 }, "audio": { "mode": "base" } },
+    { "kind": "asset", "slot": "source", "optional": true },
+    { "kind": "asset", "slot": "outtro", "optional": true }
+  ]
+}

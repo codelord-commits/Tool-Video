@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "video-variant-builder"
+version = "0.1.0"
+description = "Tool ghép video hàng loạt theo preset (CLI + Web UI)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+  "pydantic>=2.6",
+  "psutil>=5.9",
+  "fastapi>=0.110",
+  "uvicorn[standard]>=0.27",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "httpx>=0.27", "playwright>=1.44"]
+
+[project.scripts]
+vvb = "vvb.__main__:main"
+vvb-web = "web.server:main"
+
+[tool.setuptools.packages.find]
+include = ["vvb*", "web*"]
+
+[tool.setuptools.package-data]
+web = ["static/**/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+  "integration: cần ffmpeg, render thật",
+  "real: dùng dữ liệu thật qua VVB_REAL_DATA",
+  "ui: test trình duyệt Playwright",
+]
