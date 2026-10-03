@@ -1,6 +1,7 @@
 """Dự án: tự nhận slot, quét + ghép (nhanh) hoặc pre-flight đầy đủ, thông tin media."""
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any
 
@@ -30,7 +31,9 @@ def resolve(b: ResolveBody):
         raise HTTPException(404, "Thư mục dự án không tồn tại")
     paths = resolve_project(p, b.project)
     s = STATE.load_settings()
-    rec = [b.project] + [x for x in s.get("recent_projects", []) if x != b.project]
+    proj = str(Path(b.project).resolve())
+    same = lambda x: os.path.normcase(str(Path(x).resolve())) == os.path.normcase(proj)  # noqa: E731 — D:\a == D:/a
+    rec = [proj] + [x for x in s.get("recent_projects", []) if not same(x)]
     STATE.save_settings({"recent_projects": rec})
     return {"paths": paths, "out_dir": str(Path(b.project) / "Output"),
             "missing": [n for n in p.slots if n not in paths]}

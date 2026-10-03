@@ -248,8 +248,11 @@ function app() {
     },
     fbChoose(path) {
       const target = this.fb.target;
+      // Người dùng dán đường dẫn rồi bấm "Chọn" ngay (chưa bấm Mở) → dùng đường dẫn đã gõ, không lấy thư mục cũ
+      const typed = (this.fb.typed || "").trim();
+      const chosen = path || (typed && typed !== this.fb.path ? typed : this.fb.path);
       this.modal = null;
-      this.applyPath(target, path || this.fb.path);
+      this.applyPath(target, chosen);
     },
     async nativePick() {
       const target = this.fb.target;
@@ -627,7 +630,7 @@ function app() {
       const f = this.full;
       if (!f || !f.total_duration) return "";
       const todo = f.total_duration * (f.count ? (f.count - (this.preset.run.existing === "skip" ? f.existing : 0)) / f.count : 1);
-      const secs = this.job.eta ?? (todo * 0.25) / Math.max(1, f.workers);
+      const secs = this.job.eta ?? (todo * 0.5) / Math.max(1, f.workers);  // ước lượng thô, sẽ tính lại sau video đầu
       return [this.t("run.estimate", { time: fmtDuration(secs) }), this.t("run.size", { size: fmtBytes(f.est_bytes) }),
               f.existing ? this.t("run.existing", { n: f.existing }) : ""].filter(Boolean).join(" · ");
     },

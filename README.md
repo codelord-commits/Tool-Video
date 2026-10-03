@@ -1,137 +1,299 @@
+<div align="center">
+
+<img src="build/icon.png" width="96" alt="">
+
 # Video Variant Builder
 
-Tool ghép video hàng loạt theo **preset**: chọn thư mục dự án → bấm **Bắt đầu** → ra đủ mọi biến thể
-(ví dụ 10 ngôn ngữ × 12 clip = 120 video). Có giao diện web chạy ngay trên máy bạn, kèm dòng lệnh (CLI) cho người dùng nâng cao.
+**Ghép video quảng cáo hàng loạt — chọn thư mục, bấm một nút, ra đủ mọi phiên bản.**
 
-- Thay **nửa dưới / nửa trên / toàn khung / ô nhỏ (PiP)** của video bằng clip khác, **giữ nguyên tiếng** và **giữ dải caption**.
-- Nối đúng phần thân video **theo cùng ngôn ngữ** (Arab ↔ Arab, French ↔ French…), tự hiểu `Arabic = Arab = AR`, `Por = Portuguese`…
-- Thay hook 3 giây đầu, chèn clip vào giữa, chỉ nối theo nhóm… **chỉ bằng preset**, không sửa code.
-- Xem trước từng khung hình, **kéo thả khung vùng thay trực tiếp trên ảnh**, xem thử 5 giây.
-- Chạy song song, tạm dừng / tiếp tục, tự chạy tiếp sau khi mất điện, bỏ qua video đã có.
+[⬇ Tải bản mới nhất](https://github.com/codelord-commits/Tool-Video/releases/latest) ·
+[Hướng dẫn nhanh](#-bắt-đầu-trong-5-phút) ·
+[Câu hỏi thường gặp](#-gặp-sự-cố)
 
-> Video được xử lý **hoàn toàn trên máy của bạn** — không tải lên đâu cả.
+</div>
+
+![Giao diện Video Variant Builder](docs/images/03-sau-khi-chon.png)
 
 ---
 
-## 1. Cài đặt
+## Tool này giúp gì cho bạn?
 
-### Cách A — Bản đóng gói (không cần cài gì)
-1. Vào mục **Releases** của repo, tải file `VideoVariantBuilder-windows.zip` (hoặc `-macos.zip`).
-2. Giải nén ra một thư mục (ví dụ `D:\VideoVariantBuilder`).
-3. Mở `VideoVariantBuilder.exe` (macOS: `VideoVariantBuilder.app`).
-   Một cửa sổ đen nhỏ hiện ra và trình duyệt tự mở giao diện. **Giữ cửa sổ đen đó mở** trong lúc dùng; đóng nó là thoát tool.
+Bạn có **1 video quảng cáo làm bằng nhiều ngôn ngữ** và **nhiều clip** muốn thử. Làm tay từng bản trên CapCut thì rất lâu.
+Tool này làm **tất cả các bản cùng lúc**:
 
-**macOS lần đầu mở:** chuột phải vào `VideoVariantBuilder.app` → **Open** → **Open** (vì ứng dụng chưa ký số với Apple).
-**Windows / antivirus:** một số phần mềm diệt virus có thể chặn `ffmpeg.exe` đi kèm. Nếu bị chặn, thêm thư mục tool vào danh sách loại trừ.
-**Windows SmartScreen:** bấm **More info → Run anyway**.
+```
+   Intro (mỗi ngôn ngữ 1 file)          Clip mới (nhiều clip)
+   ┌──────────────┐                    ┌──────┐ ┌──────┐ ┌──────┐
+   │ ảnh + chữ    │  ← giữ nguyên      │clip01│ │clip02│ │clip03│ …
+   │──caption─────│  ← giữ nguyên      └──────┘ └──────┘ └──────┘
+   │ nửa dưới     │  ← THAY bằng clip mới
+   └──────────────┘
+            +  Source cùng ngôn ngữ  +  Outtro
+                         ↓
+   5 ngôn ngữ × 10 clip = 50 video hoàn chỉnh, tự xếp vào từng thư mục
+```
 
-### Cách B — Chạy từ mã nguồn (cần Python 3.10+)
+- ✅ **Giữ nguyên giọng đọc** và **dải chữ caption** của Intro.
+- ✅ Tự nối đúng phần thân video **cùng ngôn ngữ** (Arab đi với Arab, French đi với French…).
+- ✅ Tự hiểu tên file khác nhau: `Arabic` = `Arab` = `AR`, `Por` = `Portuguese`, `Thailand` = `Thai`…
+- ✅ Video ra chuẩn TikTok / Reels / Shorts (dọc 1080×1920), đăng được ngay.
+- ✅ Mọi thứ chạy **trên máy của bạn**, không tải video lên mạng.
+
+Ngoài kiểu "thay nửa dưới", tool còn làm được: thay 3 giây đầu (hook), thay nửa trên, chèn clip vào giữa, đặt clip vào ô nhỏ ở góc (PiP)…
+
+---
+
+## 🚀 Bắt đầu trong 5 phút
+
+### Bước 1 — Tải và mở tool
+
+1. Vào trang **[Releases](https://github.com/codelord-commits/Tool-Video/releases/latest)**, tải file **`VideoVariantBuilder-windows.zip`**
+   (máy Mac thì tải `VideoVariantBuilder-macos.zip`).
+2. **Giải nén** file zip: chuột phải → *Extract All…* → chọn nơi lưu, ví dụ `D:\VideoVariantBuilder`.
+   > ⚠️ Đừng chạy trực tiếp bên trong file zip, tool sẽ không hoạt động.
+3. Mở thư mục vừa giải nén, **nhấp đúp `VideoVariantBuilder.exe`**.
+4. Một **cửa sổ đen nhỏ** hiện ra, rồi **trình duyệt tự mở** giao diện tool.
+
+> 💡 **Cửa sổ đen là "động cơ" của tool — đừng đóng nó** khi đang dùng. Đóng cửa sổ đen = tắt tool.
+> Lỡ đóng trình duyệt cũng không sao: mở lại `VideoVariantBuilder.exe` là được, video đang làm vẫn chạy tiếp.
+
+<details>
+<summary><b>Windows báo "Windows protected your PC"?</b></summary>
+
+Bấm **More info** → **Run anyway**. Cảnh báo này xuất hiện vì tool chưa mua chứng chỉ ký số, không phải vì có virus.
+</details>
+
+<details>
+<summary><b>Máy Mac báo "không thể mở vì không xác định được nhà phát triển"?</b></summary>
+
+Chuột phải (hoặc Control + bấm) vào `VideoVariantBuilder.app` → chọn **Open** → bấm **Open** lần nữa. Chỉ cần làm 1 lần đầu.
+</details>
+
+<details>
+<summary><b>Phần mềm diệt virus chặn hoặc xoá file?</b></summary>
+
+Tool có kèm `ffmpeg.exe` (phần mềm xử lý video miễn phí, rất phổ biến). Một số phần mềm diệt virus nhầm lẫn file này.
+Hãy thêm thư mục tool vào danh sách **loại trừ (exclusion)** của phần mềm diệt virus rồi giải nén lại.
+</details>
+
+### Bước 2 — Sắp xếp video vào thư mục
+
+Tạo **1 thư mục cho mỗi đợt làm** (ví dụ `Dot 1`) và xếp video như sau:
+
+```
+📁 Dot 1
+ ├── 📁 Intro      ← đoạn mở đầu, MỖI NGÔN NGỮ 1 FILE
+ │     ├── Arab.mp4
+ │     ├── French.mp4
+ │     └── Hindi.mp4
+ ├── 📁 Source     ← phần thân, TÊN FILE TRÙNG NGÔN NGỮ với Intro
+ │     ├── Arab.mp4
+ │     ├── French.mp4
+ │     └── Hindi.mp4
+ ├── 📁 Video      ← các clip mới để thay vào (đặt tên gì cũng được)
+ │     ├── clip01.mp4
+ │     └── clip02.mp4
+ └── 🎬 Outtro.mp4 ← đoạn kết, dùng chung cho mọi video
+```
+
+**3 quy tắc cần nhớ:**
+1. File trong `Intro` và `Source` phải **cùng tên ngôn ngữ** (`Arab.mp4` ↔ `Arab.mov` là được, khác đuôi không sao).
+2. Tên thư mục viết đúng `Intro`, `Source`, `Video`. Hoa hay thường đều được. File kết đặt tên `Outtro`, `Outro` hoặc `Ending`.
+3. Nhận các định dạng: `.mp4`, `.mov`, `.m4v`, `.mkv`, `.webm`, `.avi`.
+
+### Bước 3 — Chọn thư mục
+
+Bấm nút **Chọn thư mục**.
+
+![Màn hình đầu tiên](docs/images/01-man-hinh-dau.png)
+
+Trong cửa sổ hiện ra, đi tới thư mục `Dot 1` rồi bấm **Chọn thư mục này**.
+Mẹo: có thể **dán đường dẫn** vào ô trên cùng (ví dụ `D:\Khach A\Dot 1`) rồi bấm **Mở**.
+
+![Chọn thư mục](docs/images/02-chon-thu-muc.png)
+
+### Bước 4 — Kiểm tra bảng ghép
+
+Cột bên trái hiện các mục tool vừa tìm thấy, kèm **bảng ghép nhóm**: mỗi dòng là 1 ngôn ngữ.
+
+<img src="docs/images/04-bang-ghep.png" width="300" align="right" alt="Bảng ghép nhóm">
+
+| Thấy gì | Nghĩa là |
+|---|---|
+| ✓ **xanh** | Có file, ổn |
+| Ô **vàng** | Thiếu file — chọn file đúng trong danh sách |
+| Ô **đỏ** | Có 2 file trùng tên ngôn ngữ — chọn 1 file |
+| Dòng *"Không dùng tới"* | File thừa, không có Intro tương ứng |
+
+- **Bỏ tick** ngôn ngữ nào không muốn làm.
+- Ở mục **Clip trong pool**, bấm vào tên clip để bỏ chọn clip không muốn dùng.
+
+<br clear="right">
+
+### Bước 5 — Xem trước (nên làm)
+
+Ở giữa màn hình là **khung xem trước** video thành phẩm.
+
+- **Khung tím** = phần sẽ bị thay bằng clip mới. **Khung cam** = phần được giữ lại (dải caption).
+- **Kéo khung** bằng chuột để chỉnh vị trí, kéo các **chấm tròn ở mép** để đổi kích thước.
+  Nếu caption của bạn nằm cao hơn hoặc thấp hơn, kéo khung cam cho trùng với caption.
+- Đổi **Nhóm** / **Clip** ở thanh trên để xem các bản khác; kéo **thanh thời gian** phía dưới để xem giây khác.
+- Bấm **▶ Xem thử 5s** để xem một đoạn video ngắn có cả tiếng.
+
+### Bước 6 — Bấm Bắt đầu
+
+Ở thanh dưới cùng, tool cho biết sẽ tạo bao nhiêu video, mất khoảng bao lâu và cần bao nhiêu dung lượng.
+Bấm **▶ Bắt đầu**.
+
+![Đang chạy](docs/images/05-dang-chay.png)
+
+- Muốn dùng máy việc khác một lúc: bấm **Tạm dừng**, rồi **Tiếp tục**.
+- Muốn huỷ: bấm **Dừng**. Video đã xong vẫn được giữ lại.
+- Xong sẽ có thông báo kèm tiếng "ting". Bấm **Mở Output** để xem video.
+
+![Hoàn tất](docs/images/06-hoan-tat.png)
+
+### Video thành phẩm nằm ở đâu?
+
+Trong thư mục **`Output`** bên trong thư mục dự án, chia theo ngôn ngữ:
+
+```
+📁 Dot 1
+ └── 📁 Output
+       ├── 📁 Arab      Arab_clip01.mp4, Arab_clip02.mp4 …
+       ├── 📁 French    French_clip01.mp4 …
+       ├── 📄 manifest.csv   ← danh sách tất cả video (mở bằng Excel)
+       └── 📄 errors.log     ← chỉ có khi có video lỗi
+```
+
+> 💡 **Chạy lại cùng thư mục?** Video nào đã có sẽ được **bỏ qua**, tool chỉ làm video còn thiếu.
+> Muốn làm lại 1 video: xoá file đó trong `Output` rồi bấm Bắt đầu.
+
+---
+
+## 🎛️ Chỉnh thêm (không bắt buộc)
+
+Cột bên phải là **Tuỳ chọn**. Rê chuột vào dấu **?** cạnh mỗi ô để xem giải thích. Hay dùng nhất:
+
+| Muốn… | Vào tab | Chỉnh |
+|---|---|---|
+| Clip mới lấp kín vùng hoặc hiện đủ hình | **Vùng** | *Cách đặt clip*: Lấp đầy / Vừa khít |
+| Lấy phần giữa của clip thay vì phần đầu | **Thời lượng** | *Bắt đầu clip từ*: `center` |
+| Clip ngắn hơn Intro thì đứng hình thay vì lặp lại | **Thời lượng** | *Khớp thời lượng* |
+| Dùng tiếng của clip mới thay giọng Intro | **Âm thanh** | *Âm thanh đoạn*: Tiếng clip pool |
+| Âm lượng các video đều nhau | **Âm thanh** | *Chuẩn hoá loudness*: `-14` |
+| Video nhẹ hơn / nét hơn | **Output** | *Chất lượng* |
+| Làm nhanh hơn | **Chạy** | *Số video song song* (2–4) |
+| Đổi tên file video ra | **Output** | *Mẫu tên file* |
+
+Nút **↺ Về mặc định** đưa tab đang mở về như cũ.
+
+**Giao diện sáng / tối, tiếng Việt / English:** dùng 2 nút ở góc trên bên phải.
+
+<img src="docs/images/07-giao-dien-sang.png" alt="Giao diện sáng" width="720">
+
+### Lưu cấu hình để dùng lại (preset)
+
+Đã chỉnh xong và muốn lần sau dùng lại? Bấm menu **Preset** ở góc trên → **Lưu thành preset mới…**, đặt tên, xong.
+Lần sau chỉ cần chọn preset đó trong menu. Có thể **Xuất file .json** để gửi cho đồng nghiệp, người kia dùng **Nhập file .json**.
+
+Các kiểu làm có sẵn trong menu Preset:
+
+| Preset | Dùng khi |
+|---|---|
+| **Thay nửa dưới + giữ caption** | Thay nửa dưới Intro, giữ giọng + caption, nối Source + Outtro *(mặc định)* |
+| **Thay hook 3s đầu** | 3 giây đầu là clip mới, sau đó là video chính |
+| **Thay hook giữ voice** | 3 giây đầu đổi hình nhưng vẫn giữ giọng đọc gốc |
+| **Thay nửa trên** | Giống mặc định nhưng thay nửa trên |
+| **Chèn clip vào giữa** | Chèn 3 giây clip mới vào giữa video |
+| **Chỉ nối theo nhóm** | Chỉ ghép Intro + Source + Outtro theo ngôn ngữ, không thay gì |
+| **PiP góc** | Đặt clip mới vào ô nhỏ bo góc ở góc dưới phải |
+
+> Các preset khác (Thay hook, PiP…) dùng thư mục **`Body`** cho video chính và **`Hook`** / **`Video`** cho clip.
+> Xem tên thư mục cần có ở cột trái sau khi chọn preset.
+
+---
+
+## 🆘 Gặp sự cố?
+
+| Hiện tượng | Cách xử lý |
+|---|---|
+| Nút **Bắt đầu** bị mờ | Đọc dòng chữ vàng ngay cạnh nút, tool ghi rõ đang thiếu gì. Bấm **Kiểm tra** để xem danh sách lỗi; bấm vào từng lỗi để tới đúng chỗ. |
+| Một ngôn ngữ bị bỏ qua | Thiếu file `Source` cùng tên. Kiểm tra lại tên file, hoặc chọn file thay thế trong ô vàng ở bảng ghép. |
+| Báo **"Trùng"** (ô đỏ) | Trong cùng thư mục có 2 file cùng ngôn ngữ (ví dụ `Arab.mp4` và `Arabic.mov`). Chọn 1 file trong ô đỏ hoặc xoá bớt file. |
+| Caption bị che một phần | Ở khung xem trước, kéo **khung cam** cho phủ kín dải caption. |
+| Clip mới bị cắt mất phần quan trọng | Tab **Vùng** → *Neo khi cắt* (Trên / Dưới / Giữa), hoặc *Cách đặt clip* = Vừa khít. |
+| Mất điện / tắt máy giữa chừng | Mở lại tool, chọn lại thư mục dự án → bấm **Tiếp tục job** trên dòng thông báo màu vàng. |
+| Video lỗi | Bấm vào dòng đỏ trong **Nhật ký** để xem lý do, rồi bấm **Chạy lại video lỗi**. File thường bị hỏng hoặc đang tải dở. |
+| Ổ đĩa đầy | Tool tự **tạm dừng** khi ổ sắp đầy. Xoá bớt file rồi bấm **Tiếp tục**. |
+| Trình duyệt báo **"Phiên đã hết hạn"** | Mở lại `VideoVariantBuilder.exe` (vì lý do bảo mật, mỗi lần mở tool có một đường link mới). |
+| File trên Google Drive / OneDrive | Tải file về máy trước (chọn *Always keep on this device*), tool cảnh báo nếu file chỉ nằm trên mạng. |
+
+Vẫn chưa được? Tạo [Issue](https://github.com/codelord-commits/Tool-Video/issues) kèm ảnh chụp màn hình và file `errors.log` (nếu có).
+
+---
+
+## 📖 Giải thích từ ngữ
+
+| Từ | Nghĩa |
+|---|---|
+| **Nhóm** | Một phiên bản của video, thường là **ngôn ngữ** (Arab, French…) |
+| **Pool / Clip thay thế** | Các clip mới trong thư mục `Video`, mỗi clip tạo ra 1 video cho mỗi ngôn ngữ |
+| **Vùng thay** (khung tím) | Phần khung hình sẽ bị thay bằng clip mới |
+| **Vùng bảo vệ** (khung cam) | Phần lấy lại từ video gốc phủ lên trên cùng (caption, logo…) |
+| **Preset** | Bộ cấu hình đã lưu cho một kiểu làm video |
+| **Output** | Thư mục chứa video thành phẩm |
+
+---
+
+## 👩‍💻 Dành cho người dùng nâng cao
+
+<details>
+<summary><b>Chạy từ mã nguồn (cần Python 3.10+)</b></summary>
+
 ```bash
-git clone https://github.com/<tài-khoản>/video-variant-builder.git
-cd video-variant-builder
+git clone https://github.com/codelord-commits/Tool-Video.git
+cd Tool-Video
 python -m venv .venv
 .venv\Scripts\activate          # macOS/Linux: source .venv/bin/activate
 pip install -e .
-python scripts/get_ffmpeg.py    # tải ffmpeg vào thư mục bin/
+python scripts/get_ffmpeg.py    # tải ffmpeg vào bin/
 vvb-web                         # mở giao diện
 ```
+</details>
 
----
-
-## 2. Dùng giao diện — 4 bước
-
-```
-① NGUỒN  →  ② XEM TRƯỚC  →  ③ TUỲ CHỌN  →  ④ CHẠY
-```
-
-**Chuẩn bị thư mục dự án** (ví dụ cho preset *Thay nửa dưới + giữ caption*):
-```
-Dot 1/
-├── Intro/     Arab.mov, French.mov, Hindi.mov …   (mỗi ngôn ngữ 1 file)
-├── Source/    Arab.mov, French.mov, Hindi.mov …   (cùng tên ngôn ngữ với Intro)
-├── Video/     clip01.mp4, clip02.mp4 …            (các clip mới để thay vào)
-└── Outtro.mov                                     (dùng chung cho mọi video)
-```
-
-1. **Nguồn** — bấm **Chọn thư mục**, chọn `Dot 1`. Tool tự nhận Intro / Source / Video / Outtro và hiện **bảng ghép nhóm**:
-   - ✓ xanh = có file; ô vàng = thiếu (chọn tay trong danh sách); ô đỏ = trùng tên (chọn 1 file).
-   - Bỏ tick nhóm hoặc clip nào không muốn chạy.
-2. **Xem trước** — chọn nhóm, clip, thời điểm. **Kéo khung tím** (vùng thay) và **khung cam** (vùng bảo vệ, ví dụ caption) ngay trên ảnh.
-   Có thể bấm vào khung rồi dùng phím mũi tên (Shift = bước lớn, Alt = co giãn). Bấm **Xem thử 5s** để xem video ngắn.
-3. **Tuỳ chọn** — chỉnh nếu cần (cách lấp clip, âm thanh, độ phân giải, chất lượng…). Rê chuột vào biểu tượng **?** để xem giải thích.
-4. **Chạy** — bấm **Kiểm tra** để soát lỗi trước, rồi **Bắt đầu**. Video ra ở `Dot 1/Output/<ngôn ngữ>/…`.
-   Có thể **Tạm dừng**, **Dừng**; xong sẽ có thông báo và nút **Mở Output**. Video lỗi có nút **Chạy lại video lỗi**.
-
-**Preset:** menu **Preset** ở thanh trên để đổi loại job, lưu cấu hình đã chỉnh (`Ctrl+S`), nhân bản, xuất / nhập file `.json` để gửi máy khác.
-
-**Mất điện / tắt máy giữa chừng:** mở lại tool, chọn lại thư mục dự án → hiện thông báo *"Phát hiện job dang dở"* → bấm **Tiếp tục job**.
-Video đã xong được giữ nguyên.
-
-### Preset có sẵn
-| Preset | Làm gì |
-|---|---|
-| Thay nửa dưới + giữ caption | Thay nửa dưới Intro bằng clip, giữ tiếng + dải caption, nối Source cùng ngôn ngữ + Outtro |
-| Thay hook 3s đầu | 3 giây đầu là clip pool, sau đó là thân video từ giây thứ 3 |
-| Thay hook giữ voice | 3 giây đầu thay hình bằng clip nhưng giữ tiếng gốc |
-| Thay nửa trên | Thay nửa trên Intro |
-| Chèn clip vào giữa | Thân 0–5s → clip 3s → thân từ 5s (có chuyển cảnh mờ) |
-| Chỉ nối theo nhóm | Intro → Source → Outtro theo ngôn ngữ, không dùng clip pool |
-| PiP góc | Clip nằm trong ô nhỏ bo góc ở góc dưới phải |
-
-Tạo preset mới: xem [docs/PRESET.md](docs/PRESET.md).
-
----
-
-## 3. Dòng lệnh (CLI)
+<details>
+<summary><b>Dòng lệnh (CLI) — chạy tự động, không cần giao diện</b></summary>
 
 ```bash
 vvb run   --preset palm_bottom --project "D:/Khach A/Dot 1"
-vvb run   --preset palm_bottom --intro ./Intro --source ./Source --pool ./Video --outtro ./Outtro.mp4 --out ./Output
-vvb check --preset palm_bottom --project "D:/Khach A/Dot 1"        # kiểm tra, không render
+vvb check --preset palm_bottom --project "D:/Khach A/Dot 1"        # chỉ kiểm tra, không render
 vvb run   ... --dry-run | --groups arab,french | --clips clip01,clip02 | --limit 3
 vvb run   ... --workers 4 --quality max --existing overwrite --codec h264_nvenc
-vvb preview ... --at 1.5 -o preview.png                            # 1 khung hình
-vvb resume --out ./Output                                          # chạy tiếp job dang dở
+vvb preview ... --at 1.5 -o preview.png
+vvb resume --out "D:/Khach A/Dot 1/Output"
 vvb presets list
 ```
 Bản đóng gói: `VideoVariantBuilder.exe cli run --preset …` (cùng tham số).
-Thứ tự ưu tiên tuỳ chọn: **dòng lệnh > preset > mặc định**.
+Thứ tự ưu tiên: **dòng lệnh > preset > mặc định**.
+</details>
 
-Dùng như thư viện Python:
-```python
-from vvb import make_job, run_job
-job = make_job("palm_bottom", project="D:/Khach A/Dot 1")
-summary = run_job(job)
-```
+<details>
+<summary><b>Tự viết preset cho kiểu video mới</b></summary>
 
----
+Xem **[docs/PRESET.md](docs/PRESET.md)**: giải thích từng trường, kèm ví dụ thay hook, PiP, thay tiếng theo nhóm…
+</details>
 
-## 4. Kết quả đầu ra
+<details>
+<summary><b>Đóng góp mã nguồn</b></summary>
 
-```
-Output/
-├── Arab/Arab_clip01.mp4 …
-├── manifest.csv / manifest.json   mỗi dòng 1 video: nhóm, clip, file nguồn, thời lượng, trạng thái, seed…
-├── errors.log                     chi tiết lỗi + lệnh ffmpeg (nếu có)
-├── preset.json                    bản sao preset đã dùng (để tạo lại y hệt)
-└── .vvb/                          nhật ký job (để tiếp tục khi bị ngắt)
-```
-Video chuẩn: H.264, yuv420p, AAC stereo, `faststart` — đăng thẳng TikTok / Reels / YouTube Shorts.
+Xem **[CONTRIBUTING.md](CONTRIBUTING.md)**.
+</details>
 
 ---
 
-## 5. Câu hỏi thường gặp
+## Giấy phép
 
-- **"Không tìm thấy ffmpeg"** — bản đóng gói đã có sẵn; bản mã nguồn chạy `python scripts/get_ffmpeg.py`.
-- **Tên file khác nhau (Arabic / Arab / AR)** — tool tự hiểu qua bảng alias. Thêm alias riêng trong *Tuỳ chọn → Nâng cao*.
-- **Video quay điện thoại bị xoay / HDR iPhone bị nhợt màu** — tool tự xoay đúng và chuyển HDR về SDR.
-- **Muốn nhanh hơn** — tăng *Số video song song* (tab Chạy), hoặc chọn encoder GPU (NVIDIA/Intel/AMD/Mac) ở tab Output.
-  Phần dùng chung (Source theo nhóm, Outtro) chỉ encode **1 lần** rồi dùng lại.
-- **Ổ đầy** — tool kiểm tra trước khi chạy và tự tạm dừng khi ổ sắp đầy.
-
----
-
-## 6. Giấy phép
-Mã nguồn: MIT (xem [LICENSE](LICENSE)). ffmpeg đi kèm bản đóng gói là phần mềm riêng theo GPL —
-xem `bin/FFMPEG_LICENSE.txt`, mã nguồn tại <https://ffmpeg.org/download.html>.
+Mã nguồn theo giấy phép **MIT**, xem [LICENSE](LICENSE).
+ffmpeg đi kèm bản đóng gói là phần mềm riêng theo giấy phép GPL (`bin/FFMPEG_LICENSE.txt`, mã nguồn tại <https://ffmpeg.org/download.html>).
 Font Fira (SIL OFL 1.1), icon Lucide (ISC), Alpine.js (MIT).

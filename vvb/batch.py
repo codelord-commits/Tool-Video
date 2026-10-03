@@ -67,10 +67,19 @@ class Summary:
 
 
 def _atomic_write(path: Path, text: str) -> None:
+    """Ghi nguyên tử. Windows: antivirus/indexer có thể mở file trong tích tắc → thử lại thay vì lỗi."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_name(path.name + ".tmp")
+    tmp = path.with_name(f"{path.name}.{threading.get_ident()}.tmp")
     tmp.write_text(text, encoding="utf-8")
-    os.replace(tmp, path)
+    for attempt in range(40):
+        try:
+            os.replace(tmp, path)
+            return
+        except PermissionError:
+            if attempt == 39:
+                tmp.unlink(missing_ok=True)
+                raise
+            time.sleep(0.05 + attempt * 0.01)
 
 
 class OutputLock:
@@ -216,8 +225,11 @@ class BatchRunner:
              "groups_filter": self.job.groups_filter, "clips_filter": self.job.clips_filter,
              "manual_match": self.job.manual_match, "updated": datetime.now().isoformat(),
              "tasks": [{"index": s.index, "status": s.status, "out": s.out} for s in self.states.values()]}
-        with self._lock:
-            _atomic_write(journal_path(self.out_dir), json.dumps(d, ensure_ascii=False, indent=1))
+        try:
+            with self._lock:
+                _atomic_write(journal_path(self.out_dir), json.dumps(d, ensure_ascii=False, indent=1))
+        except OSError as e:  # nhật ký chỉ phục vụ resume — không được làm hỏng job
+            self.bus.log("warn", f"Không ghi được nhật ký job ({e}) — vẫn chạy tiếp")
 
     # ------------------------------------------------------------ chạy
     def run(self) -> Summary:

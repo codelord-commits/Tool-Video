@@ -30,7 +30,10 @@ VERSION = "n8.1"
 
 def get(url: str) -> bytes:
     print(f"  tải {url}")
-    req = urllib.request.Request(url, headers={"User-Agent": "video-variant-builder"})
+    headers = {"User-Agent": "video-variant-builder"}
+    if "api.github.com" in url and os.environ.get("GITHUB_TOKEN"):
+        headers["Authorization"] = f"Bearer {os.environ['GITHUB_TOKEN']}"  # tránh giới hạn API trên CI
+    req = urllib.request.Request(url, headers=headers)
     with urllib.request.urlopen(req, timeout=300) as r:
         return r.read()
 
@@ -99,6 +102,11 @@ def check() -> None:
 
 
 def main() -> int:
+    for st in (sys.stdout, sys.stderr):  # console Windows mặc định cp1252 — không in được tiếng Việt
+        try:
+            st.reconfigure(encoding="utf-8")
+        except Exception:  # noqa: BLE001
+            pass
     BIN.mkdir(exist_ok=True)
     sysname, mach = platform.system(), platform.machine().lower()
     print(f"Hệ điều hành: {sysname} {mach}")

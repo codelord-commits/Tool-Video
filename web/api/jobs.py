@@ -41,6 +41,7 @@ def _start(job: Job, workers: Optional[int] = None) -> dict:
             runner.run()
         except Exception as e:  # noqa: BLE001
             STATE.bus.log("error", f"Job dừng do lỗi: {e}")
+            runner.state = "error"  # không để giao diện kẹt ở "running"
             STATE.bus.emit("job", state="error", summary=runner.summary.to_dict(), error=str(e))
 
     STATE.job_thread = threading.Thread(target=target, daemon=True, name="vvb-job")

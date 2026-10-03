@@ -7,6 +7,7 @@ permissions:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: windows-latest
@@ -25,6 +26,9 @@ jobs:
           pip install -e . pyinstaller
       - name: Tải ffmpeg
         run: python scripts/get_ffmpeg.py
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PYTHONIOENCODING: utf-8
       - name: Đóng gói
         run: pyinstaller build/vvb.spec --noconfirm --workpath build/out --distpath dist
       - name: Nén (Windows)
